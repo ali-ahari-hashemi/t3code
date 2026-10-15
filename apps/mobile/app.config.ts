@@ -112,7 +112,7 @@ function resolveAppVariant(value: string | undefined): AppVariant {
 const variant = VARIANT_CONFIG[APP_VARIANT];
 const iosBundleIdentifier = isIosPersonalTeamBuild
   ? personalTeamBundleIdentifier!
-  : variant.iosBundleIdentifier;
+  : repoEnv.T3CODE_IOS_BUNDLE_ID?.trim() || variant.iosBundleIdentifier;
 
 const dmSansFonts = {
   regular: "@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf",
@@ -252,16 +252,16 @@ const config: ExpoConfig = {
     // showcase capture build requires full screen (see infoPlist below).
     requireFullScreen: process.env.T3_SHOWCASE_CAPTURE_BUILD === "1",
     bundleIdentifier: iosBundleIdentifier,
-    // Pin code signing to the T3 Tools team so non-interactive `expo run:ios`
-    // does not fall back to a personal team (which cannot sign app groups,
-    // Sign in with Apple, or push notification entitlements).
-    appleTeamId: "ARK85ZXQ4Z",
-    associatedDomains: [
-      `applinks:${variant.relyingParty}`,
-      `webcredentials:${variant.relyingParty}`,
-    ],
+    // Local fork builds can use their own signing team and retain extension capabilities.
+    appleTeamId:
+      repoEnv.T3CODE_APPLE_TEAM_ID?.trim() || (isIosPersonalTeamBuild ? undefined : "ARK85ZXQ4Z"),
+    // Upstream's domain association does not authorize a custom App ID.
+    associatedDomains:
+      isIosPersonalTeamBuild || iosBundleIdentifier !== variant.iosBundleIdentifier
+        ? []
+        : [`applinks:${variant.relyingParty}`, `webcredentials:${variant.relyingParty}`],
     entitlements: {
-      "keychain-access-groups": [`$(AppIdentifierPrefix)${variant.iosBundleIdentifier}`],
+      "keychain-access-groups": [`$(AppIdentifierPrefix)${iosBundleIdentifier}`],
     },
     infoPlist: {
       UISupportedInterfaceOrientations: [

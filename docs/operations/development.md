@@ -136,6 +136,59 @@ export check's workspace selectors as more workspaces become clean. Review calle
 deleting code; production mode can also report development scripts and test fixtures.
 Runtime-discovered entrypoints and dependency exceptions belong in [knip.jsonc](../../knip.jsonc).
 
+## Personal fork workflow
+
+Keep `main` as an upstream baseline and custom work on `personal`. Create feature
+branches from `main` when a change should also be proposed upstream, then merge
+those branches into `personal`. To update, start with a clean working tree:
+
+```sh
+git fetch upstream
+git switch main
+git merge --ff-only upstream/main
+git switch personal
+git merge main
+vp i
+```
+
+Resolve conflicts and test your changes before rebuilding. Push `main`, `personal`,
+and feature branches to your own `origin` as needed. The desktop keeps upstream's
+app identity, URL schemes, and storage; use one installed version at a time. For a
+personal Nightly DMG, use the existing build-version option, for example:
+
+```sh
+vp run dist:desktop:dmg --build-version 0.0.45-nightly.20261014.1
+```
+
+Use the current base version and your own date/build number for subsequent builds.
+Local desktop builds have no update feed unless configured through
+`T3CODE_DESKTOP_UPDATE_REPOSITORY` or `GITHUB_REPOSITORY`; leave both unset for manual
+updates.
+
+For a paid Apple developer team, put these values in the gitignored root `.env.local`:
+
+```dotenv
+T3CODE_APPLE_TEAM_ID=YOUR_TEAM_ID
+T3CODE_IOS_BUNDLE_ID=com.example.t3code
+T3CODE_IOS_PERSONAL_TEAM=0
+T3CODE_MOBILE_UPDATES_ENABLED=0
+```
+
+This retains widgets and the share extension under your own App ID. Sign into Xcode
+with your team and configure a development signing certificate, then connect your
+iPhone and run from `apps/mobile`:
+
+```sh
+APP_VARIANT=production EXPO_NO_GIT_STATUS=1 vp exec expo prebuild --clean --platform ios
+APP_VARIANT=production vp exec expo run:ios --configuration Release --no-bundler --device
+```
+
+Rebuild and install to update your personal app. Keep OTA disabled so upstream
+updates cannot replace your custom JavaScript. EAS/TestFlight needs your own Expo
+project and App Store Connect configuration before using upstream's cloud scripts.
+Custom Apple IDs are not registered with upstream cloud sign-in/push services;
+direct network or tailnet pairing does not require those services.
+
 ## Desktop artifacts
 
 Local artifact builds are unsigned by default and write to `release/`:
